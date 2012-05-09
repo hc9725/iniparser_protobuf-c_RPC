@@ -1,0 +1,48 @@
+package foo;
+
+message Person {
+  required string name = 1;
+  required int32 id = 2;
+  optional string email = 3;
+
+  enum PhoneType {
+    MOBILE = 0;
+    HOME = 1;
+    WORK = 2;
+  }
+
+  message PhoneNumber {
+    required string number = 1;
+    optional PhoneType type = 2 [default = HOME];
+  }
+
+  repeated PhoneNumber phone = 4;
+  repeated int32 array = 5;
+}
+
+message LookupResult
+{
+  optional Person person = 1;
+}
+
+message Name {
+  optional string name = 1;
+};
+
+message Array
+{
+	required string name = 1;
+	repeated int32 number2 = 2;	
+}
+message LookupResult2
+{
+	optional Array array =1;	
+}
+message Name2
+{
+	optional string name =1;	
+};
+service DirLookup {
+  	rpc ByName (Name) returns (LookupResult);
+	rpc ByName2 (Name2) returns (LookupResult2);
+}
