@@ -116,12 +116,16 @@ static void parse_ini_file(const char *ini_name)
     dictionary *ini;
     unsigned n_people = 0;
     unsigned n_array = 0;
+    unsigned n_number2 = 0;
 	int i;
 	int j;
 	int cnt;
+	int cnt_bsmsg = 0;
+	int cnt_arr = 0;
 	int num_array = 0;
 	int num_sec;
-	int num_sec_bsmsg;
+	int psn_n_array = 0;
+	int allocate = 32;
 	int array[20];
 	char *sec;
 	char *s;
@@ -131,19 +135,15 @@ static void parse_ini_file(const char *ini_name)
     if (ini  == NULL)
 		die("error opening %s: %s", ini_name, strerror(errno));
 	num_sec = iniparser_getnsec(ini);
-	num_sec_bsmsg = iniparser_getsecnkeys(ini, "basemsg");
-	n_people = num_sec_bsmsg;
-    if (n_people == 0)
-		die("empty database: insufficiently interesting to procede");
-	Foo__Person *people = xmalloc(sizeof(Foo__Person) * num_sec_bsmsg);
+	Foo__Person *people = xmalloc(sizeof(Foo__Person) * allocate);
+    Foo__Array *Array = xmalloc(sizeof(Foo__Array) * allocate);
 	for(cnt = 0; cnt < num_sec; cnt++)
 	{
-		
 		name_fd = iniparser_getsecname(ini,cnt);
-	    if(sec == "basemsg")
+	    if(strcmp(name_fd, "basemsg") == 0)
 		{
 			Foo__Person *person;
-			person = people + cnt ;
+			person = people + n_people++ ;
 			foo__person__init(person);
 
 			sprintf(str, "%s:name", name_fd);
@@ -160,7 +160,7 @@ static void parse_ini_file(const char *ini_name)
 		
 			sprintf(str,"%s:array_number",name_fd);
 			num_array = iniparser_getint(ini, str, -1);
-			n_array = num_array;
+			psn_n_array = num_array;
 			person->n_array = num_array;
 			person->array = malloc(sizeof(int) * num_array);
 			for(j = 0; j < num_array; j++)
@@ -213,18 +213,40 @@ static void parse_ini_file(const char *ini_name)
 				person->phone[person->n_phone++] =pn;
 			}
 		}
-		else
+		else if(strcmp(name_fd, "array") == 0)
 		{
-			NULL;	
-		}
-		}
-	iniparser_freedict(ini);
+			Foo__Array *array;
+			array = Array + n_array++ ;
+	    	foo__array__init(array);
+			sprintf(str, "%s:name",name_fd);
+			s = iniparser_getstring(ini, str, NULL);
+			array->name = xstrdup(s);
 
+			sprintf(str,"%s:array_number",name_fd);
+			num_array = iniparser_getint(ini,str,-1);
+	   		array->number2 = malloc(sizeof(int) * num_array);
+	    	array->n_number2 = num_array;
+	    	n_number2 = num_array;
+			for(j = 0;j < num_array; j++)
+			{
+				sprintf(str,"%s:%s[%d]",name_fd, array->name, j);
+				printf("str:  %s\n",str);
+				i = iniparser_getint(ini,str,-1);
+				array->number2[j] = i;	
+			}
+		}
+	}
+	iniparser_freedict(ini);
+    if (n_people == 0 && n_array ==0)
+		die("empty database: insufficiently interesting to procede");
     //qsort(people, n_people, sizeof(Foo__Person), compare_persons_by_name);
-    qsort(people, num_sec, sizeof(Foo__Person), compare_persons_by_name);
+    qsort(people, n_people, sizeof(Foo__Person), compare_persons_by_name);
+    qsort(Array, n_array, sizeof(Foo__Array), compare_array_by_name2);
 
     database = people;
-    database_size = n_people;
+    database2 = Array;
+	database_size = n_people;
+	database2_size = n_array;
 }
 
 //static void load_database2(const char *filename)
@@ -378,12 +400,13 @@ int main(int argc, char **argv)
 		parse_ini_file(strchr(argv[i],'=') + 1);
 		flagsrv_person = 1;
 	} 
-	else if (starts_with(argv[i], "--db2=")) 
+	/*else if (starts_with(argv[i], "--db2=")) 
 	{
 	    parse_ini_file_array_only(strchr(argv[i],'=') + 1);
 		//load_database2(strchr(argv[i], '=') + 1);
 	    flagsrv_array = 1;
-	} else
+	} */
+	else
 	    usage();
     }
 
@@ -391,26 +414,14 @@ int main(int argc, char **argv)
 	die("missing --database=FILE (try --database=example.database)");
     if (name == NULL)
 	die("missing --port=NUM or --unix=PATH");
-	server =
-	    protobuf_c_rpc_server_new(address_type, name,
+	server = protobuf_c_rpc_server_new(address_type, name,
 				      (ProtobufCService *) &
 				      the_dir_lookup_service, dispatcha);
 	printf("server  is on\n");
-    //}
-   // if (flagsrv_array == 1) {
-	    //typedef struct _ProtobufC_RPC_Server ProtobufC_RPC_Server;
-	    //protobuf_c_rpc_server(address_type, name,
-	//  server2 =
-	// server2 =
-//	ProtobufCService(address_type, name,(ProtobufCService *) &the_dir_lookup_service, dispatchb);
-//	printf("server array is on\n");
-  //  }
 
     for (;;)
     {
-	protobuf_c_dispatch_run(protobuf_c_dispatch_default());
-//	protobuf_c_dispatch_run(dispatcha);
-//	protobuf_c_dispatch_run(dispatchb);
+		protobuf_c_dispatch_run(protobuf_c_dispatch_default());
     }
     return 0;
 }
