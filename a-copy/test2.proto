@@ -1,0 +1,19 @@
+package foo;
+
+message Array
+{
+	required string name = 1;
+	repeated int32 number2 = 2;	
+}
+message LookupResult2
+{
+	optional Array array =1;	
+}
+message Name2
+{
+	optional string name =1;	
+};
+service DirLookup2
+{
+	rpc ByName2 (Name2) returns (LookupResult2);
+}
