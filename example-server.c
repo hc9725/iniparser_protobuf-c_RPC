@@ -121,89 +121,103 @@ static void parse_ini_file(const char *ini_name)
 	int cnt;
 	int num_array = 0;
 	int num_sec;
+	int num_sec_bsmsg;
 	int array[20];
+	char *sec;
 	char *s;
 	char str[50];
-	char name_fd[20];
+	char *name_fd;
 	ini = iniparser_load(ini_name);
     if (ini  == NULL)
 		die("error opening %s: %s", ini_name, strerror(errno));
 	num_sec = iniparser_getnsec(ini);
-	n_people = num_sec;
+	num_sec_bsmsg = iniparser_getsecnkeys(ini, "basemsg");
+	n_people = num_sec_bsmsg;
     if (n_people == 0)
 		die("empty database: insufficiently interesting to procede");
-	Foo__Person *people = xmalloc(sizeof(Foo__Person) * num_sec);
+	Foo__Person *people = xmalloc(sizeof(Foo__Person) * num_sec_bsmsg);
 	for(cnt = 0; cnt < num_sec; cnt++)
 	{
-	    Foo__Person *person;
-		person = people + cnt ;
-		foo__person__init(person);
-		sprintf(name_fd,"%s",iniparser_getsecname(ini,cnt));
-		person->name = xstrdup(name_fd);
 		
-		sprintf(str,"%s:email",name_fd);
-		s =iniparser_getstring(ini,str,NULL);
-		person->email = xstrdup(s);
+		name_fd = iniparser_getsecname(ini,cnt);
+	    if(sec == "basemsg")
+		{
+			Foo__Person *person;
+			person = people + cnt ;
+			foo__person__init(person);
 
-		sprintf(str,"%s:id",name_fd);
-		i = iniparser_getint(ini,str,-1);
-		person->id = i;
+			sprintf(str, "%s:name", name_fd);
+			s =iniparser_getstring(ini,str,NULL);
+			person->name = xstrdup(s);
 		
-		sprintf(str,"%s:array_number",name_fd);
-		num_array = iniparser_getint(ini, str, -1);
-		n_array = num_array;
-		person->n_array = num_array;
-		person->array = malloc(sizeof(int) * num_array);
-		for(j = 0; j < num_array; j++)
-		{
-			sprintf(str, "%s:array[%d]",name_fd,j);
-			i = iniparser_getint(ini, str, -1);
-			person->array[j] = i;
-		}
+			sprintf(str,"%s:email",name_fd);
+			s =iniparser_getstring(ini,str,NULL);
+			person->email = xstrdup(s);
+
+			sprintf(str,"%s:id",name_fd);
+			i = iniparser_getint(ini,str,-1);
+			person->id = i;
 		
-		Foo__Person__PhoneNumber *pn =
-		    xmalloc(sizeof(Foo__Person__PhoneNumber));
-		Foo__Person__PhoneNumber tmp =
-		    FOO__PERSON__PHONE_NUMBER__INIT;
-		sprintf(str,"%s:mobile",name_fd);
-		s =iniparser_getstring(ini,str,NULL);
-		if(s != NULL)
-		{
-			tmp.has_type = 1;
-			tmp.type = FOO__PERSON__PHONE_TYPE__MOBILE;
-			tmp.number = xstrdup(s);
-			person->phone = xrealloc(person->phone,sizeof(Foo__Person__PhoneNumber *) *\
+			sprintf(str,"%s:array_number",name_fd);
+			num_array = iniparser_getint(ini, str, -1);
+			n_array = num_array;
+			person->n_array = num_array;
+			person->array = malloc(sizeof(int) * num_array);
+			for(j = 0; j < num_array; j++)
+			{
+				sprintf(str, "%s:array[%d]",name_fd,j);
+				i = iniparser_getint(ini, str, -1);
+				person->array[j] = i;
+			}
+		
+			Foo__Person__PhoneNumber *pn =
+		    	xmalloc(sizeof(Foo__Person__PhoneNumber));
+			Foo__Person__PhoneNumber tmp =
+		    	FOO__PERSON__PHONE_NUMBER__INIT;
+			sprintf(str,"%s:mobile",name_fd);
+			s =iniparser_getstring(ini,str,NULL);
+			if(s != NULL)
+			{
+				tmp.has_type = 1;
+				tmp.type = FOO__PERSON__PHONE_TYPE__MOBILE;
+				tmp.number = xstrdup(s);
+				person->phone = xrealloc(person->phone,sizeof(Foo__Person__PhoneNumber *) *\
 										(person->n_phone +1));
-			*pn = tmp;
-			person->phone[person->n_phone++] =pn;
+				*pn = tmp;
+				person->phone[person->n_phone++] =pn;
 			
-		}
-		sprintf(str,"%s:home",name_fd);
-		s =iniparser_getstring(ini,str,NULL);
-		if(s != NULL)
-		{
-			tmp.has_type = 1;
-			tmp.type =FOO__PERSON__PHONE_TYPE__HOME;
-			tmp.number = xstrdup(s);
-			person->phone = xrealloc(person->phone,sizeof(Foo__Person__PhoneNumber *) *\
+			}
+			sprintf(str,"%s:home",name_fd);
+			s =iniparser_getstring(ini,str,NULL);
+			if(s != NULL)
+			{
+				tmp.has_type = 1;
+				tmp.type =FOO__PERSON__PHONE_TYPE__HOME;
+				tmp.number = xstrdup(s);
+				person->phone = xrealloc(person->phone,sizeof(Foo__Person__PhoneNumber *) *\
 										(person->n_phone +1));
-			*pn = tmp;
-			person->phone[person->n_phone++] =pn;
+				*pn = tmp;
+				person->phone[person->n_phone++] =pn;
 
+			}
+			sprintf(str,"%s:work",name_fd);
+			s =iniparser_getstring(ini,str,NULL);
+			if(s != NULL)
+			{
+				tmp.has_type = 1;
+				tmp.type =FOO__PERSON__PHONE_TYPE__WORK;
+				tmp.number = xstrdup(s);
+				person->phone = xrealloc(person->phone,sizeof(Foo__Person__PhoneNumber *) *\
+											(person->n_phone +1));
+				*pn = tmp;
+				person->phone[person->n_phone++] =pn;
+			}
 		}
-		sprintf(str,"%s:work",name_fd);
-		s =iniparser_getstring(ini,str,NULL);
-		if(s != NULL)
+		else
 		{
-			tmp.has_type = 1;
-			tmp.type =FOO__PERSON__PHONE_TYPE__WORK;
-			tmp.number = xstrdup(s);
-			person->phone = xrealloc(person->phone,sizeof(Foo__Person__PhoneNumber *) *\
-										(person->n_phone +1));
-			*pn = tmp;
-			person->phone[person->n_phone++] =pn;
+			NULL;	
 		}
-	}
+		}
 	iniparser_freedict(ini);
 
     //qsort(people, n_people, sizeof(Foo__Person), compare_persons_by_name);
